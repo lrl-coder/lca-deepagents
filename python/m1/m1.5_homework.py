@@ -50,10 +50,32 @@ from models import model
 #       ...
 # ════════════════════════════════════════════════════════════════════════
 
+from typing import Annotated, Literal
+from langchain.tools import tool
+
+
 @tool
-def your_custom_tool(query: str) -> str:
-    """TODO 1: replace this docstring and body with your own tool."""
-    raise NotImplementedError("TODO 1: see the comment block above")
+def your_custom_tool(
+    query: Annotated[
+        Literal["川菜", "粤菜", "鲁菜", "苏菜", "浙菜", "闽菜", "湘菜", "徽菜"],
+        "要查询的菜系"
+    ]
+) -> str:
+    """根据查询的菜系提供代表菜肴。"""
+
+    cuisine_dict = {
+        "川菜": "麻婆豆腐",
+        "粤菜": "白切鸡",
+        "鲁菜": "九转大肠",
+        "苏菜": "松鼠鳜鱼",
+        "浙菜": "西湖醋鱼",
+        "闽菜": "佛跳墙",
+        "湘菜": "剁椒鱼头",
+        "徽菜": "臭鳜鱼",
+    }
+
+    return cuisine_dict[query]
+    
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -65,7 +87,7 @@ def your_custom_tool(query: str) -> str:
 # read_sql.
 # ════════════════════════════════════════════════════════════════════════
 
-SYSTEM_PROMPT = """TODO 2: replace this with your own system prompt."""
+SYSTEM_PROMPT = """你是一个大厨，熟悉中餐各种菜系的代表菜肴，请回答用户有关中餐代表菜肴的问题，除此以外不要回答其余领域的问题。你可以使用 `your_custom_tool` 函数查询菜肴。"""
 
 # Guards against running with an unfilled placeholder; the filled
 # reference doesn't need this since there's no placeholder text left.
@@ -82,7 +104,7 @@ agent = create_deep_agent(
 )
 
 result = agent.invoke(
-    {"messages": [{"role": "user", "content": "Ask your agent a question that needs your tool."}]}
+    {"messages": [{"role": "user", "content": "写冒泡排序的python代码。"}]}
 )
 
 print(result["messages"][-1].content)
