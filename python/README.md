@@ -12,7 +12,7 @@ You can find the course at [Deep Agents](https://academy.langchain.com/courses/f
 
 ### Prerequisites
 
-- Python 3.11–3.14
+- Python 3.11–3.13
 - [uv](https://docs.astral.sh/uv/): [how to install](#installing-uv)
 - LLM Model API key: choose your favorite provider. The course defaults to Anthropic ([sign up for an Anthropic API key here](https://console.anthropic.com/))
 - LangSmith API key: [how to get one](#getting-started-with-langsmith)
@@ -115,9 +115,9 @@ If you see tracing errors at runtime, check that both `LANGSMITH_TRACING=true` a
 <details>
 <summary>Wrong Python version</summary>
 
-The course requires Python 3.11–3.14.
+The course requires Python 3.11–3.13. Python 3.14 is not currently supported because a transitive dependency does not provide compatible prebuilt Windows packages.
 
-**Solution:** If using `uv`, run `uv sync` — it will install the correct Python version automatically. If using pip, install Python 3.11–3.14 from [python.org](https://www.python.org/downloads/).
+**Solution:** If using `uv`, run `uv sync` — it will install the correct Python version automatically. If using pip, install Python 3.11–3.13 from [python.org](https://www.python.org/downloads/).
 
 </details>
 
