@@ -149,7 +149,7 @@ def main() -> None:
     if not client_id:
         raise SystemExit("Set GITHUB_CLIENT_ID in .env (your GitHub OAuth App client ID).")
 
-    scope = os.environ.get("GITHUB_SCOPE", "repo read:user")
+    scope = os.environ.get("GITHUB_SCOPE", "repo read:user user:email")
 
     endpoints = discover_endpoints()
     result = capture_code(endpoints["authorization_endpoint"], client_id, scope)

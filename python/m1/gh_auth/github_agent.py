@@ -11,7 +11,10 @@ Run:  uv run python m1/gh_auth/github_agent.py
 from __future__ import annotations
 
 import asyncio
+import base64
+import mimetypes
 import os
+import re
 import threading
 import webbrowser
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -25,6 +28,7 @@ from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain_mcp_adapters.tools import load_mcp_tools
 from mcp.client.auth import OAuthClientProvider
 from mcp.shared.auth import OAuthClientInformationFull, OAuthClientMetadata, OAuthToken
+from mcp.types import TextResourceContents
 
 from models import model
 
@@ -32,6 +36,7 @@ ENV_PATH = Path(__file__).resolve().parent.parent.parent / ".env"
 load_dotenv(dotenv_path=ENV_PATH, override=True)
 
 TOKEN_FILE = Path(__file__).resolve().parent.parent.parent / ".m1_github_token"
+RESOURCE_DIR = Path(__file__).resolve().parent / "github_resources"
 
 MCP_URL = "https://api.githubcopilot.com/mcp/"
 REDIRECT_URI = "http://127.0.0.1:8765/"
@@ -133,12 +138,7 @@ async def wait_for_callback() -> tuple[str, str | None]:
     return result["code"], result.get("state")
 
 
-async def main() -> None:
-    client_id = os.environ.get("GITHUB_CLIENT_ID")
-    client_secret = os.environ.get("GITHUB_CLIENT_SECRET")
-    if not client_id or not client_secret:
-        raise SystemExit("Set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET in .env.")
-
+def create_github_client(client_id: str, client_secret: str) -> MultiServerMCPClient:
     auth = GitHubOAuthClientProvider(
         server_url=MCP_URL,
         client_metadata=OAuthClientMetadata(
@@ -151,8 +151,7 @@ async def main() -> None:
         callback_handler=wait_for_callback,
         requested_scope=SCOPE,
     )
-
-    client = MultiServerMCPClient({
+    return MultiServerMCPClient({
         "github": {
             "transport": "streamable_http",
             "url": MCP_URL,
@@ -160,6 +159,98 @@ async def main() -> None:
         }
     })
 
+
+async def download_resources(client_id: str, client_secret: str, resources) -> int:
+    """Read listed MCP resources and save their contents to local files."""
+    if not resources:
+        return 0
+
+    RESOURCE_DIR.mkdir(parents=True, exist_ok=True)
+    downloaded = 0
+    for resource_index, resource in enumerate(resources, start=1):
+        try:
+            # A malformed HTTP response can terminate the MCP transport's
+            # background task. Isolate each read so one bad resource does not
+            # poison the session used by later resources or the agent.
+            resource_client = create_github_client(client_id, client_secret)
+            async with resource_client.session("github") as session:
+                result = await session.read_resource(resource.uri)
+        except Exception as e:  # noqa: BLE001
+            print(f"  Could not download {resource.name}: {e}")
+            continue
+
+        safe_name = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", resource.name).strip(" .")
+        safe_name = safe_name or "resource"
+        name_path = Path(safe_name)
+        for content_index, content in enumerate(result.contents, start=1):
+            try:
+                default_extension = (
+                    ".txt" if isinstance(content, TextResourceContents) else ".bin"
+                )
+                extension = name_path.suffix or mimetypes.guess_extension(
+                    content.mimeType or ""
+                ) or default_extension
+                part = f"_part{content_index}" if len(result.contents) > 1 else ""
+                filename = f"{resource_index:03d}_{name_path.stem}{part}{extension}"
+                path = RESOURCE_DIR / filename
+
+                if isinstance(content, TextResourceContents):
+                    path.write_text(content.text, encoding="utf-8")
+                else:
+                    path.write_bytes(base64.b64decode(content.blob))
+                downloaded += 1
+                print(f"  Downloaded {resource.name} -> {path}")
+            except Exception as e:  # noqa: BLE001
+                print(f"  Could not save {resource.name} part {content_index}: {e}")
+
+    return downloaded
+
+
+async def main() -> None:
+    client_id = os.environ.get("GITHUB_CLIENT_ID")
+    client_secret = os.environ.get("GITHUB_CLIENT_SECRET")
+    if not client_id or not client_secret:
+        raise SystemExit("Set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET in .env.")
+
+    client = create_github_client(client_id, client_secret)
+
+    resources = []
+    async with client.session("github") as session:
+        try:
+            cursor = None
+            while True:
+                page = await session.list_resources(cursor=cursor)
+                resources.extend(page.resources)
+                cursor = page.nextCursor
+                if not cursor:
+                    break
+            print(f"github: {len(resources)} resource(s) available")
+            for resource in resources:
+                description = f" - {resource.description}" if resource.description else ""
+                print(f"  {resource.name}: {resource.uri}{description}")
+        except Exception as e:  # noqa: BLE001
+            print(f"github: could not list resources: {e}")
+
+        try:
+            prompts = []
+            cursor = None
+            while True:
+                page = await session.list_prompts(cursor=cursor)
+                prompts.extend(page.prompts)
+                cursor = page.nextCursor
+                if not cursor:
+                    break
+            print(f"github: {len(prompts)} prompt(s) available")
+            for prompt in prompts:
+                description = f" - {prompt.description}" if prompt.description else ""
+                print(f"  {prompt.name}{description}")
+        except Exception as e:  # noqa: BLE001
+            print(f"github: could not list prompts: {e}")
+
+    downloaded = await download_resources(client_id, client_secret, resources)
+    print(f"github: downloaded {downloaded} resource file(s) to {RESOURCE_DIR}")
+
+    client = create_github_client(client_id, client_secret)
     async with client.session("github") as session:
         tools = await load_mcp_tools(session)
         for tool in tools:
@@ -186,7 +277,7 @@ async def main() -> None:
                 "What is my GitHub username and what repositories do I have?"
             )}]
         })
-        print("\n" + result["messages"][-1].content)
+        print("\n" + result["messages"][-1].text)
 
 
 if __name__ == "__main__":
