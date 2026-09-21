@@ -186,7 +186,7 @@ def check_manual_installs(file_path: str):
         return
 
     manual_installs = []
-    with open(file_path) as f:
+    with open(file_path, encoding="utf-8") as f:
         for line in f:
             stripped = line.strip()
             # Look for the manual installs comment
@@ -234,7 +234,7 @@ def doublecheck_env(file_path: str):
     # Parse the example file to identify required keys and their example values
     required_keys = {}
     all_example_values = {}
-    with open(file_path) as f:
+    with open(file_path, encoding="utf-8") as f:
         lines = f.readlines()
         is_required_section = False
         for line in lines:
