@@ -104,7 +104,119 @@ agent = create_deep_agent(
 )
 
 result = agent.invoke(
-    {"messages": [{"role": "user", "content": "写冒泡排序的python代码。"}]}
+    {"messages": [{"role": "user", "content": "苏菜的代表菜是？"}]}
 )
 
 print(result["messages"][-1].content)
+
+"""
+{
+    "messages": [
+        HumanMessage(
+            content="苏菜的代表菜是？",
+            additional_kwargs={},
+            response_metadata={},
+            id="9d786a11-4e29-4df6-9c39-d6e9a3c71594"
+        ),
+
+        AIMessage(
+            content=[
+                {
+                    "arguments": '{"query":"苏菜"}',
+                    "call_id": "call_YwpWU1ojKdRFaj3gSovexCD5",
+                    "name": "your_custom_tool",
+                    "type": "function_call",
+                    "id": "fc_074dbc2c331f5114006aafae0f55bc87d0b537b0e95ce172d3",
+                    "status": "completed"
+                }
+            ],
+            additional_kwargs={},
+            response_metadata={
+                "id": "resp_074dbc2c331f5114006aafae0db41c87d091f4ef1a5ece2076",
+                "created_at": 1789898253.0,
+                "metadata": {},
+                "model": "gpt-5.6-luna",
+                "object": "response",
+                "service_tier": "default",
+                "status": "completed",
+                "model_provider": "openai",
+                "model_name": "gpt-5.6-luna"
+            },
+            name="Homework_Agent",
+            id="resp_074dbc2c331f5114006aafae0db41c87d091f4ef1a5ece2076",
+            tool_calls=[
+                {
+                    "name": "your_custom_tool",
+                    "args": {
+                        "query": "苏菜"
+                    },
+                    "id": "call_YwpWU1ojKdRFaj3gSovexCD5",
+                    "type": "tool_call"
+                }
+            ],
+            invalid_tool_calls=[],
+            usage_metadata={
+                "input_tokens": 1872,
+                "output_tokens": 21,
+                "total_tokens": 1893,
+                "input_token_details": {
+                    "cache_creation": 1869,
+                    "cache_read": 0
+                },
+                "output_token_details": {
+                    "reasoning": 0
+                }
+            }
+        ),
+
+        ToolMessage(
+            content="松鼠鳜鱼",
+            name="your_custom_tool",
+            id="6de6e58e-c743-497b-a433-39f5545ab4bc",
+            tool_call_id="call_YwpWU1ojKdRFaj3gSovexCD5"
+        ),
+
+        AIMessage(
+            content=[
+                {
+                    "type": "text",
+                    "text": "苏菜（江苏菜）的代表菜是**松鼠鳜鱼**。",
+                    "annotations": [],
+                    "id": "msg_074dbc2c331f5114006aafae156f5887d08f8e9f0557a71c82",
+                    "phase": "final_answer"
+                }
+            ],
+            additional_kwargs={},
+            response_metadata={
+                "id": "resp_074dbc2c331f5114006aafae14660087d0a7b1d96f5d551260",
+                "created_at": 1789898260.0,
+                "metadata": {},
+                "model": "gpt-5.6-luna",
+                "object": "response",
+                "service_tier": "default",
+                "status": "completed",
+                "model_provider": "openai",
+                "model_name": "gpt-5.6-luna"
+            },
+            name="Homework_Agent",
+            id="resp_074dbc2c331f5114006aafae14660087d0a7b1d96f5d551260",
+            tool_calls=[],
+            invalid_tool_calls=[],
+            usage_metadata={
+                "input_tokens": 1911,
+                "output_tokens": 21,
+                "total_tokens": 1932,
+                "input_token_details": {
+                    "cache_creation": 39,
+                    "cache_read": 1869
+                },
+                "output_token_details": {
+                    "reasoning": 0
+                }
+            }
+        )
+    ],
+
+    "files": {}
+}
+"""
