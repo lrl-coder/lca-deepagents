@@ -48,8 +48,12 @@ agent = create_deep_agent(
 #     thread_a = {"configurable": {"thread_id": "my-thread-a"}}
 # ════════════════════════════════════════════════════════════════════════
 
-thread_a = None  # TODO 1: replace with your own thread config
-thread_b = None  # TODO 1: replace with your own thread config
+thread_a = {
+    "configurable": {"thread_id": "my-thread-game"}
+}  # TODO 1: replace with your own thread config
+thread_b = {
+    "configurable": {"thread_id": "my-thread-food"}
+}  # TODO 1: replace with your own thread config
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -76,9 +80,30 @@ thread_b = None  # TODO 1: replace with your own thread config
 #   )
 # ════════════════════════════════════════════════════════════════════════
 
+
 def run_scenario():
     """TODO 2: run the multi-turn, multi-thread scenario described above."""
-    raise NotImplementedError("TODO 2: see the comment block above")
+    # raise NotImplementedError("TODO 2: see the comment block above")
+    chpt = MemorySaver()
+    agent_1 = create_deep_agent(model=model, checkpointer=chpt)
+    agent_2 = create_deep_agent(model=model, checkpointer=chpt)
+    agent_1.invoke(
+        {"messages": [{"role": "user", "content": "我爱玩游戏"}]},
+        config=thread_a,
+    )
+    agent_1.invoke(
+            {"messages": [{"role": "user", "content": "我最爱玩的游戏是原神"}]},
+            config=thread_a,
+        )
+    agent_2.invoke(
+        {"messages": [{"role": "user", "content": "我最爱玩的游戏是什么？"}]},
+        config=thread_b,
+    )
+    fresh_agent = create_deep_agent(model=model, checkpointer=MemorySaver())
+    fresh_agent.invoke(
+        {"messages": [{"role": "user", "content": "我最爱玩的游戏是什么？"}]},
+        config=thread_a,
+    )
 
 
 run_scenario()
