@@ -29,6 +29,8 @@ from pathlib import Path
 
 from deepagents import FilesystemPermission, create_deep_agent
 from deepagents.backends import CompositeBackend, FilesystemBackend, StateBackend
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.types import Command
 
 from models import model
 
@@ -52,7 +54,35 @@ from models import model
 #   backend = FilesystemBackend(root_dir=str(my_dir), virtual_mode=True)
 # ════════════════════════════════════════════════════════════════════════
 
-backend = None  # TODO 1: replace with a StateBackend, FilesystemBackend, or CompositeBackend
+reference_dir = Path(r"D:\project\lca-deepagents\python\m2\reference")
+reference_dir.mkdir(exist_ok=True)
+(reference_dir / "recipe.md").write_text(
+    """\
+# Tomato and Egg Stir-Fry
+
+## Ingredients
+- 2 tomatoes
+- 3 eggs
+- 1 tablespoon cooking oil
+- Salt to taste
+
+## Instructions
+1. Scramble the eggs until just set, then remove them from the pan.
+2. Stir-fry the tomatoes until softened.
+3. Return the eggs to the pan, season with salt, and serve.
+""",
+    encoding="utf-8",
+)
+
+backend = CompositeBackend(
+    default=StateBackend(),
+    routes={
+        "/reference/": FilesystemBackend(
+            root_dir=str(reference_dir),
+            virtual_mode=True,
+        ),
+    },
+)
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -64,8 +94,21 @@ backend = None  # TODO 1: replace with a StateBackend, FilesystemBackend, or Com
 # empty and skipping permissions entirely is also a valid choice.
 # ════════════════════════════════════════════════════════════════════════
 
-TASK = None  # TODO 2: replace with your own task message
-permissions: list[FilesystemPermission] = []  # TODO 2 (optional): add rules here
+TASK = (
+    "Read /reference/recipe.md, then add a serving suggestion to the recipe."
+)
+permissions: list[FilesystemPermission] = [
+    FilesystemPermission(
+        operations=["read"],
+        paths=["/reference/recipe.md"],
+        mode="allow",
+    ),
+    FilesystemPermission(
+        operations=["write"],
+        paths=["/reference/recipe.md"],
+        mode="interrupt",
+    ),
+]
 
 if backend is None:
     raise NotImplementedError("TODO 1: see the comment block above")
@@ -76,11 +119,39 @@ agent = create_deep_agent(
     model=model,
     backend=backend,
     permissions=permissions,
+    checkpointer=MemorySaver(),
 )
 
+config = {"configurable": {"thread_id": "homework-m2.2"}}
 result = agent.invoke(
     {"messages": [{"role": "user", "content": TASK}]},
-    config={"configurable": {"thread_id": "homework-m2.2"}},
+    config=config,
+    version="v2",
 )
 
-print(result["messages"][-1].content)
+while result.interrupts:
+    pending = result.interrupts[0].value
+    decisions = []
+
+    for request in pending["action_requests"]:
+        print(f"\nApproval required for {request['name']}:")
+        print(request["args"])
+
+        approved = input("\nApprove this edit? (y/N): ").strip().lower() in {
+            "y",
+            "yes",
+        }
+        if approved:
+            decisions.append({"type": "approve"})
+        else:
+            decisions.append(
+                {"type": "reject", "message": "User rejected the recipe edit."}
+            )
+
+    result = agent.invoke(
+        Command(resume={"decisions": decisions}),
+        config=config,
+        version="v2",
+    )
+
+print(result.value["messages"][-1].content)
