@@ -59,8 +59,12 @@ RUN
 
 from __future__ import annotations
 
-from langchain_core.tools import tool
+import asyncio
 
+from langchain_core.tools import tool
+from langchain_mcp_adapters.client import MultiServerMCPClient
+
+from deepagents import create_deep_agent
 from judge_card_helpers import (
     OUTPUT_DIR,
     PRODUCT_MATCHES,
@@ -126,13 +130,18 @@ can barely be bothered to look up from whatever they were doing to
 deliver it. You are sharp, a little cruel, and allergic to participation
 trophies.""" + TOOL_SEQUENCE,
 
-    # TODO 1: name and write your own persona here. Keep the same job
-    # (score three traits, match a product, hand off a verdict)
-    # Give it a name and a voice all your own.
-    "your_persona": """TODO 1: replace this with your own judge persona. Give
-yourself a name and a distinct voice (see the three judges above for the
-shape), then call yourself that name wherever judge_name is expected
-below.""" + TOOL_SEQUENCE,
+    # TODO 1 completed: Bao Zheng judges the result like a court case.
+    "your_persona": """You are Bao Zheng, the upright magistrate also known
+as Bao Qingtian, judging a developer's working habits as though hearing a
+case in an ancient Chinese court. Write all user-visible persona text in
+clear Simplified Chinese, while keeping LangChain product names exactly as
+returned by the tools. Speak with solemn authority using courtroom phrases
+such as \"升堂\", \"本府断定\", and \"此案已明\", but add an occasional dry,
+gentle joke so the verdict feels lively rather than cruel. Address the user
+as \"堂下之人\" or \"阁下\". Base every ruling on the actual trait scores and
+the fetched product fact. Never invent evidence, never insult the user, and
+never drop into casual internet slang. When calling render_card, identify
+yourself exactly as \"Bao Zheng\".""" + TOOL_SEQUENCE,
 }
 
 
@@ -162,7 +171,7 @@ def score_and_match(answers: list[tuple[int, int, int]]) -> dict:
     # clamp every score back into that range.
     scores = [max(0, min(100, score)) for score in scores]
 
-    # TODO here: scores is finished. Use it to pick a matched product.
+    # scores is finished. Use the strongest trait leaning to match a product.
     # 1. Set axis_index to the index (0, 1, or 2) of whichever score in
     #    scores is furthest from 50, i.e. has the biggest abs(score - 50).
     #    Hint: this is a "find the index of the biggest value" problem.
@@ -176,7 +185,11 @@ def score_and_match(answers: list[tuple[int, int, int]]) -> dict:
     # 3. Set product to PRODUCT_MATCHES[direction.lower()], e.g.
     #    PRODUCT_MATCHES["chaotic"] -> "Fleet".
     # 4. Return {"trait_scores": scores, "product": product}.
-    raise NotImplementedError("TODO 2: see the comments above")
+    axis_index = max(range(len(scores)), key=lambda i: abs(scores[i] - 50))
+    left_label, right_label = TRAIT_AXES[axis_index]
+    direction = right_label if scores[axis_index] >= 50 else left_label
+    product = PRODUCT_MATCHES[direction.lower()]
+    return {"trait_scores": scores, "product": product}
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -212,12 +225,45 @@ def score_and_match(answers: list[tuple[int, int, int]]) -> dict:
 PLACEHOLDER_FACT = "no real data connected yet: swap this for a real MCP-sourced fact"
 
 
+async def _fetch_product_fact_async(product: str) -> str:
+    """Fetch one short product fact, falling back when MCP is unavailable."""
+    try:
+        client = MultiServerMCPClient({
+            "docs-langchain": {
+                "transport": "http",
+                "url": "https://docs.langchain.com/mcp",
+            },
+        })
+        mcp_tools = await client.get_tools()
+        search_tools = [
+            mcp_tool
+            for mcp_tool in mcp_tools
+            if mcp_tool.name == "search_docs_by_lang_chain"
+        ]
+        fact_agent = create_deep_agent(model=model, tools=search_tools)
+        result = await fact_agent.ainvoke({
+            "messages": [{
+                "role": "user",
+                "content": (
+                    "Use the LangChain docs MCP tool to describe the LangChain "
+                    f"product '{product}' in ONE short factual sentence under "
+                    "25 words. Return only the sentence. Refer to the product "
+                    f"only as '{product}', even if the docs use another name."
+                ),
+            }],
+        })
+        return result["messages"][-1].content.strip()
+    except Exception as exc:
+        print(f"[product fact] falling back to placeholder ({exc})")
+        return PLACEHOLDER_FACT
+
+
 @tool
 def fetch_product_fact(product: str) -> str:
     """Look up one grounded, factual sentence about the LangChain product
     you were matched with. Call this right after score_and_match, passing
     in the product name it returned."""
-    raise NotImplementedError("TODO 3: see the comment block above")
+    return asyncio.run(_fetch_product_fact_async(product))
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -228,7 +274,7 @@ def fetch_product_fact(product: str) -> str:
 # You'll get multiple cards to compare, judging the same quiz answers.
 # ════════════════════════════════════════════════════════════════════════
 
-JUDGES_TO_RUN = ["your_persona"]  # TODO 4: e.g. ["your_persona", "ancient_mummy"]
+JUDGES_TO_RUN = ["your_persona", "ancient_mummy"]
 
 
 def build_user_prompt(answers: list[tuple[int, int, int]]) -> str:
@@ -250,7 +296,7 @@ if __name__ == "__main__":
             system_prompt=JUDGE_PERSONAS[judge_name],
             user_prompt=user_prompt,
             tools=[score_and_match, fetch_product_fact, render_card, post_card],
-            model=model,  # TODO 6 (Lesson 1.3, Models, optional): from models import strong_model and try it here
-            interrupt_on=None,  # TODO 5 (Lesson 1.8, Human-in-the-Loop: Decision Types): gate post_card, e.g. {"post_card": True}
+            model=model,  # Keep the current model; strong_model is an optional comparison.
+            interrupt_on={"post_card": True},
         )
     print(f"\nCards saved to {OUTPUT_DIR}/")
