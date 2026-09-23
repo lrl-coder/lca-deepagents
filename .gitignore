@@ -140,3 +140,6 @@ archive/
 .claude/
 thinkific/src/m3/m3.sketches.md
 python/m5/sales_assistant/agent_sandbox.py
+
+python/m1/temp.py
+python/m1/gh_auth/github_resources/
