@@ -14,8 +14,10 @@ Run:
 """
 
 import asyncio
+from pathlib import Path
 
 from deepagents import create_deep_agent
+from deepagents.backends import FilesystemBackend
 from langchain_core.messages import HumanMessage
 from langgraph.checkpoint.memory import MemorySaver
 
@@ -25,13 +27,19 @@ from models import model
 # (85% of 700) instead of the real threshold. Must use model object, not string.
 model.profile = {**model.profile, "max_input_tokens": 700}
 
+BACKEND_ROOT = Path(__file__).resolve().parents[1] / "temp" / "m3.1_summarization"
+backend = FilesystemBackend(root_dir=BACKEND_ROOT)
+
 agent = create_deep_agent(
     model=model,
+    backend=backend,
     checkpointer=MemorySaver(),
     system_prompt="You are a helpful assistant. Keep every response to one sentence.",
 )
 
-THREAD = {"configurable": {"thread_id": "demo"}}
+THREAD_ID = "demo"
+THREAD = {"configurable": {"thread_id": THREAD_ID}}
+ARCHIVE_FILE = BACKEND_ROOT / "conversation_history" / f"{THREAD_ID}.md"
 
 
 async def turn(message: str) -> str:
@@ -50,9 +58,16 @@ async def show_state() -> None:
     if event:
         cutoff = event.get("cutoff_index", "?")
         print(f"  model saw : summary + messages[{cutoff}:]  [SUMMARIZED]")
+        file_path = event.get("file_path")
+        if file_path and ARCHIVE_FILE.exists():
+            print(f"  archive : {ARCHIVE_FILE} ({ARCHIVE_FILE.stat().st_size} bytes)")
+        else:
+            print(f"  archive : write failed (backend path: {file_path!r})")
 
 
 async def main() -> None:
+    print(f"Conversation archive: {ARCHIVE_FILE}")
+
     turns = [
         "My name is Alex. I work at Acme Corp.",
         "What is 2 + 2?",

@@ -61,7 +61,13 @@ from models import model
 #   )
 # ════════════════════════════════════════════════════════════════════════
 
-SYSTEM_PROMPT = None  # TODO 1: replace with your own system prompt
+SYSTEM_PROMPT = (
+    "You are a data visualization assistant. When asked to run code, "
+    "write the script to a file first, then execute it. Install packages "
+    "with `pip install --break-system-packages <package>` (e.g. `pip "
+    "install --break-system-packages matplotlib`). When asked "
+    "for a chart, use matplotlib and save it as a .png file."
+)  # TODO 1: replace with your own system prompt
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -88,8 +94,8 @@ SYSTEM_PROMPT = None  # TODO 1: replace with your own system prompt
 #   )
 # ════════════════════════════════════════════════════════════════════════
 
-TASK_ONE = None  # TODO 2: replace with your first task message
-TASK_TWO = None  # TODO 2: replace with a second task that charts TASK_ONE's file
+TASK_ONE = "Generate 12 months of made-up monthly rainfall totals (in mm) for a fictional city, save them to rainfall.json, and print them."  # TODO 2: replace with your first task message
+TASK_TWO = "Read rainfall.json (don't regenerate the numbers) and create a bar chart of monthly rainfall. Save it to /chart.png."  # TODO 2: replace with a second task that charts TASK_ONE's file
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -100,7 +106,7 @@ TASK_TWO = None  # TODO 2: replace with a second task that charts TASK_ONE's fil
 # save it locally, the same way Lab 2 reads /genre_revenue.png back.
 # ════════════════════════════════════════════════════════════════════════
 
-CHART_PATH = None  # TODO 3: replace with the sandbox path used in TASK_TWO
+CHART_PATH = "/chart.png"  # TODO 3: replace with the sandbox path used in TASK_TWO
 
 if SYSTEM_PROMPT is None:
     raise NotImplementedError("TODO 1: see the comment block above")
