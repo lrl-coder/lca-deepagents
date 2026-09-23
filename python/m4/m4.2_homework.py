@@ -84,14 +84,30 @@ def build_subagents(specs: list[dict]) -> list[dict]:
 
 SUBAGENT_SPECS = [
     {
-        "name": "TODO-1-name-1",
-        "description": "TODO 1: when should the main agent delegate to this one?",
-        "role_prompt": "TODO 1: who is this subagent, and what is its job?",
+        "name": "exercise-expert",
+        "description": (
+            "为希望塑形、增肌或改善体能的用户设计安全、可执行的训练方案，"
+            "包括动作、组数、次数、频率和渐进方式。"
+        ),
+        "role_prompt": (
+            "你是一名运动专家，擅长力量训练、体态塑形和训练计划设计。"
+            "根据用户的目标，给出兼顾纤细体态与清晰肌肉线条的训练建议，"
+            "说明每周频率、动作选择、组数次数、强度与渐进方式，并提醒必要的"
+            "热身、恢复和安全注意事项。建议应现实、具体且适合普通健身者。"
+        ),
     },
     {
-        "name": "TODO-1-name-2",
-        "description": "TODO 1: when should the main agent delegate to this one?",
-        "role_prompt": "TODO 1: who is this subagent, and what is its job?",
+        "name": "nutrition-planner",
+        "description": (
+            "为减脂、塑形和增肌目标提供营养搭配建议，包括热量、蛋白质、"
+            "膳食结构和便于执行的食物选择。"
+        ),
+        "role_prompt": (
+            "你是一名营养搭配师，擅长为健身与体态管理目标设计均衡、可持续的"
+            "饮食方案。根据用户想要纤细身材并保留肌肉线条的目标，给出合理的"
+            "热量策略、蛋白质摄入、三餐搭配、训练前后饮食和食物示例。"
+            "避免极端节食；信息不足时给出按体重计算的通用范围，并说明如何调整。"
+        ),
     },
 ]
 
@@ -106,8 +122,17 @@ SUBAGENT_SPECS = [
 # BOTH of your subagents.
 # ════════════════════════════════════════════════════════════════════════
 
-MAIN_PROMPT = """TODO 2: replace this with your own main agent system prompt."""
-USER_REQUEST = "TODO 2: replace this with a request that should trigger delegation to both subagents."
+MAIN_PROMPT = """你是一名健身方案协调顾问，负责整合运动与饮食建议。
+
+处理用户请求时使用 task 工具委派给以下两名专家：
+- exercise-expert（运动专家）：负责训练计划、动作安排、训练频率、强度和恢复建议。
+- nutrition-planner（营养搭配师）：负责热量策略、营养素分配、餐食搭配和食物选择。
+
+当用户的问题同时涉及身材塑形和饮食时，必须分别调用这两个子代理。收集两名专家的
+结果后，将其整合成一份清晰、协调、可执行的中文方案；不要代替专家自行制定训练或
+饮食内容。若用户未提供身体数据，先给出安全的通用方案，并列出后续个性化所需信息。"""
+
+USER_REQUEST = "我身高162cm，体重48kg，我想要纤细的身材，同时拥有清晰的肌肉线条，应该如何锻炼和饮食？"
 
 for _spec in SUBAGENT_SPECS:
     if _spec["name"].startswith("TODO-1"):

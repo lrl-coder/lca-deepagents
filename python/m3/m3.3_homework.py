@@ -73,13 +73,23 @@ def memory_namespace(runtime):
 # ════════════════════════════════════════════════════════════════════════
 
 def build_seed_memory_a() -> str:
-    """TODO 1: return CONTEXT_A's starting memory content."""
-    raise NotImplementedError("TODO 1: see the comment block above")
+    """Return CONTEXT_A's starting memory content."""
+    return """\
+# Food Preference Notes
+
+- I enjoy rich, strongly seasoned food with plenty of oil and sugar.
+- I especially like spicy fried dishes, barbecue, and very sweet desserts.
+"""
 
 
 def build_seed_memory_b() -> str:
-    """TODO 1: return CONTEXT_B's starting memory content."""
-    raise NotImplementedError("TODO 1: see the comment block above")
+    """Return CONTEXT_B's starting memory content."""
+    return """\
+# Food Preference Notes
+
+- I prefer light food with little oil or sugar and mild seasoning.
+- I especially like steamed vegetables, clear soups, and plain congee.
+"""
 
 
 store.put(namespace_from_context(CONTEXT_A), store_memory_path, create_file_data(build_seed_memory_a()))
@@ -111,9 +121,12 @@ agent = create_deep_agent(
 #   reflect B's own seed, not A's.
 # ════════════════════════════════════════════════════════════════════════
 
-RECALL_QUESTION = "TODO 2: replace with a question answerable from build_seed_memory_a() alone."
-REMEMBER_MESSAGE = "TODO 2: replace with a 'remember this' message introducing a new, distinctive fact under context A."
-LEAK_CHECK_QUESTION = "TODO 2: replace with the SAME question as RECALL_QUESTION."
+RECALL_QUESTION = "What kind of food and flavors do I prefer?"
+REMEMBER_MESSAGE = (
+    "Remember: my favorite late-night snack is Volcano Caramel Toast No. 27 "
+    "with extra butter and chili honey. Update your memory."
+)
+LEAK_CHECK_QUESTION = "What kind of food and flavors do I prefer?"
 
 # 1. Context A recalls from its own seed.
 result_a1 = agent.invoke({"messages": [{"role": "user", "content": RECALL_QUESTION}]}, context=CONTEXT_A)

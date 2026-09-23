@@ -24,7 +24,9 @@ result = agent.invoke(
     config={"recursion_limit": 200},
 )
 
-report = result["messages"][-1].content
+# `.text` handles both legacy string content and Responses API content blocks,
+# while excluding reasoning/encrypted-content blocks from the final report.
+report = str(result["messages"][-1].text)
 print(report)
 
 seeded = json.loads((DATA_DIR / "epic_corpus_key.json").read_text())
