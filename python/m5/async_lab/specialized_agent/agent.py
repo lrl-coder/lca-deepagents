@@ -20,8 +20,8 @@ other remote deployment.
 import time
 
 import pandas as pd
-from langchain_anthropic import ChatAnthropic
 from langchain_core.tools import tool
+from langchain_openai import ChatOpenAI
 
 from deepagents import create_deep_agent
 
@@ -42,7 +42,7 @@ def analyze_sales(group_by: str = "region") -> str:
     This is a slow, heavyweight analysis job, not something you'd want
     blocking the main agent's own model calls.
     """
-    time.sleep(20)  # stands in for a genuinely slow job (a big pandas pipeline, a model call, etc.)
+    time.sleep(50)  # stands in for a genuinely slow job (a big pandas pipeline, a model call, etc.)
     key = group_by if group_by in ("region", "product") else "region"
     grouped = SALES.groupby(key)[["units_sold", "revenue"]].sum().sort_values("revenue", ascending=False)
     lines = [
@@ -52,7 +52,7 @@ def analyze_sales(group_by: str = "region") -> str:
     return "\n".join(lines)
 
 
-model = ChatAnthropic(model="claude-haiku-4-5")
+model = ChatOpenAI(model="gpt-5.6-luna", use_responses_api=True)
 
 # langgraph.json points at this module-level variable: "./agent.py:graph"
 graph = create_deep_agent(model=model, tools=[analyze_sales])
