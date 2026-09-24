@@ -6,6 +6,11 @@ This is the whole agent: a model, nothing else. The point of this lab is the
 `langgraph dev` serve it over HTTP.
 """
 
+"""
+$env:PYTHONUTF8 = "1"
+uv run langgraph dev
+"""
+
 from deepagents import create_deep_agent
 
 from models import model

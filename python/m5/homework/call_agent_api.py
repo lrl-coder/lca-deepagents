@@ -30,7 +30,7 @@ API_URL = "http://127.0.0.1:2024"
 ASSISTANT_ID = "agent"  # matches the "agent" key in langgraph.json's "graphs"
 
 # TODO 3: replace this with a question that should trigger your tool.
-QUESTION = "TODO 3: replace this with a question for your deployed agent."
+QUESTION = "翼状肩胛怎么矫正？"  # 问题
 
 
 def _last_ai_text(messages: list) -> str:
